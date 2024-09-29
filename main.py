@@ -99,7 +99,7 @@ def getGames(teams, odds):
 
     return listOfCompetitions
 
-def samplePrint(data):
+def printToExcel(data, weekNum):
 
     # Create a new Workbook and select the active sheet
     wb = Workbook()
@@ -109,8 +109,8 @@ def samplePrint(data):
     ws.title = "My Items"
 
     # Write headers (optional)
-    ws['A1'] = 'Home'  # Header for Column A
-    ws['B1'] = 'Away'  # Header for Column B
+    ws['A1'] = 'Away'  # Header for Column A
+    ws['B1'] = 'Home'  # Header for Column B
     ws['C1'] = 'spread'
     ws['D1'] = 'Over Under'
     ws['E1'] ='Pops'
@@ -120,37 +120,21 @@ def samplePrint(data):
 
     # Write data to column B starting from the second row
     for index, item in enumerate(data, start=1):  # Start from row 2
-        ws[f'A{index+1}'] = item['home']  # Write Home team
-        ws[f'B{index+1}'] = item['away']  # Write Away team
+        ws[f'A{index+1}'] = item['home']  # Write away team
+        ws[f'B{index+1}'] = item['away']  # Write home team
         ws[f'C{index+1}'] = item['spread']  # Write Spread
         ws[f'D{index+1}'] = item['over_under']  # Write Over Under
 
     # Save the workbook to a file
-    excel_file_path = F"week{4}.xlsx"
+    excel_file_path = F"week{weekNum}.xlsx"
     wb.save(excel_file_path)
 
     print(f"Data written to {excel_file_path}")
 
-def writeToExcel(data):
-    wb = Workbook()
-
-    # add_sheet is used to create sheet.
-    sheet1 = wb.add_sheet('Sheet 1')
-    # Specify the Excel file path to write to
-    file_path = 'newPicks.xlsx'
-    for comp, index in enumerate(data):
-        wb.write(index +1, 0, comp['home'])
-    wb.save(file_path)
-    for comp in data:
-        print(comp['home'], end =' ')
-        print(comp['away'], end =' ')
-        print(comp['spread'], end =' ')
-        print(comp['over_under'])
-        sheet1.write()
-
 def setUp():
+    weekNumber =4
     teams = getListOfGames()
     odds = getPregameOdds()
     run = getGames(teams, odds)
-    samplePrint(run)
+    printToExcel(run, weekNumber)
 setUp()
