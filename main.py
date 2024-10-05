@@ -3,7 +3,8 @@ from selenium import webdriver
 import pandas as pd
 import xlwt
 from xlwt import Workbook
-from openpyxl import Workbook
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import PatternFill
 import requests
 def getListOfGames():
     url = "https://www.cbssports.com/nfl/scoreboard/"  # Replace with the target URL
@@ -42,40 +43,6 @@ def getPregameOdds():
 
     #class="in-progress-odds in-progress-odds-away"
 
-def getListofCompetition(listofTeams, odds):
-    last_team =""
-    listOfCompetions =[]
-    for index, team in enumerate(listofTeams):
-        if index % 2 == 0:  # Check if the index is even
-            print('home team',team)  # Print team names at even indices
-            last_team = team
-        if index % 2 ==1:
-            print('away team', team)
-            competition = {
-            'Home': team,
-            'Away':last_team,
-            }
-
-
-def getListofCompetition(listofTeams, odds):
-    last_team = ""
-    listOfCompetitions = []
-
-    for index, team in enumerate(listofTeams):
-        if index % 2 == 0:  # Check if the index is even
-            #print('home team', team)  # Print team names at even indices
-            last_team = team
-        elif index % 2 == 1:  # Check if the index is odd
-            #print('away team', team)
-            competition = {
-                'Home': last_team,  # last_team is the home team
-                'Away': team,  # current team is the away team
-            }
-            listOfCompetitions.append(competition)
-
-    return listOfCompetitions
-
-
 def getGames(teams, odds):
     listOfCompetitions = []
 
@@ -96,8 +63,11 @@ def getGames(teams, odds):
             listOfCompetitions.append(competition)
         else:
             print(f"Warning: Not enough odds for game between {teams[i]} and {teams[i + 1]}")
-
+    print('amount of games: ', odds_index)
     return listOfCompetitions
+
+def getNumOfGames(run):
+    return len(run)
 
 def printToExcel(data, weekNum):
 
@@ -130,11 +100,102 @@ def printToExcel(data, weekNum):
     wb.save(excel_file_path)
 
     print(f"Data written to {excel_file_path}")
+    return excel_file_path
 
+def ColorizePicks(fileName, num):
+    #if there are the same picks for everyone highlight them all to be green.
+    wb = load_workbook(fileName)
+    ws = wb.active
+    #you need to grab e2 - g2.
+    #create THREE variables that will be fStrings to grab the cells to edit.
+    for i in range(2, 2+num):
+        ColE=f"E{i}"
+        ColF = f"F{i}"
+        ColG =f"G{i}"
+        if ws[ColE].value == ws [ColF].value == ws[ColG].value:
+            green_fill = PatternFill(start_color="00FF00", end_color="00FF00", fill_type="solid")
+            ws[ColE].fill = green_fill
+            ws[ColF].fill = green_fill
+            ws[ColG].fill = green_fill
+        red_Fill = PatternFill(start_color="FFA500", end_color="FF0000", fill_type="solid")
+        if ws[ColE].value != ws[ColF].value:
+
+            ws[ColE].fill = red_Fill
+            ws[ColF].fill = red_Fill
+            #ws[ColG].fill = red_Fill
+        if ws[ColE].value != ws[ColG].value:
+
+            ws[ColE].fill = red_Fill
+            ws[ColG].fill = red_Fill
+        if ws[ColF].value != ws[ColG].value:
+
+            ws[ColF].fill = red_Fill
+            ws[ColG].fill = red_Fill
+        wb.save(fileName)
+        return fileName
 def setUp():
-    weekNumber =4
+    #only do before the games start. After thursday.
+    weekNumber =5
     teams = getListOfGames()
     odds = getPregameOdds()
     run = getGames(teams, odds)
-    printToExcel(run, weekNumber)
-setUp()
+    num = getNumOfGames(run)
+    fileName = printToExcel(run, weekNumber)
+
+def getWinners(weekNumber):
+    url = f"https://www.cbssports.com/nfl/scoreboard/all/2024/regular/{weekNumber}/"  # Replace with the target URL
+    response = requests.get(url)
+    print(response)
+    soup = BeautifulSoup(response.content, 'html.parser')
+    teams = soup.find_all('a', class_="team-name-link")
+    competition={}
+    listOfTeams = []
+    itr = 0
+    isHome= False
+    for team in teams:
+        team_name = team.get_text(strip=True)
+        listOfTeams.append(team_name)
+
+    scores = soup.find_all('td', class_="total")
+    listOfScores =[]
+    for points in scores:
+        sco = points.get_text(strip=True)
+        print(sco)
+        listOfScores.append(sco)
+
+    for i in range(0, len(listOfTeams), 2):
+        index = i//2
+        listofGames = []
+        winner =""
+        loser = ""
+        winnerPoints =0
+        loserPoints =0
+        if index < len(listOfTeams):
+            if int(listOfScores[i]) < int(listOfScores[i+1]):
+                winnerPoints = listOfScores[i+1]
+                loserPoints = listOfScores[i]
+                winner = listOfTeams[i+1]
+                loser = listOfTeams[i]
+            elif int(listOfScores[i+1]) < int(listOfScores[i]):
+                winnerPoints = listOfScores[i]
+                loserPoints = listOfScores[i+1]
+                winner = listOfTeams[i]
+                loser = listOfTeams[i+1]
+
+            competition={
+                'Winner':winner,
+                'Loser':loser,
+                'Loser-points':loserPoints,
+                'Winner-points':winnerPoints
+            }
+            print(competition)
+            listofGames.append(competition)
+
+
+
+
+#setUp()
+#fileName =ColorizePicks(fileName='week4.xlsx',num =15)
+#getWinners(4)
+getWinners(4)
+
